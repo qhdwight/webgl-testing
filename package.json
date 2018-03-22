@@ -2,7 +2,7 @@
   "name": "showdown",
   "version": "1.0.0",
   "description": "A web based FPS Battle Royale game",
-  "main": "server.js",
+  "main": "server/server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
