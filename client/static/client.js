@@ -1,16 +1,8 @@
 const vertexShaderSource = `
     attribute vec3 a_VertexPosition;
     uniform mat4 u_ModelViewProjectionMatrix;
-
-    mat4 transpose(mat4 m) {
-        return mat4(m[0][0], m[1][0], m[2][0], m[3][0],
-                    m[0][1], m[1][1], m[2][1], m[3][1],
-                    m[0][2], m[1][2], m[2][2], m[3][2],
-                    m[0][3], m[1][3], m[2][3], m[3][3]);
-    }
-
     void main(void) {
-        gl_Position = transpose(u_ModelViewProjectionMatrix) * vec4(a_VertexPosition, 1.0);
+        gl_Position = u_ModelViewProjectionMatrix * vec4(a_VertexPosition, 1.0);
     }
 `;
 
@@ -119,7 +111,7 @@ class Mat {
         for (var i = 0; i < this.rows; i++) {
             for (var j = 0; j < m.columns; j++) {
                 for (var k = 0; k < this.columns; k++) {
-                    p.data[this.rows * i + j] += this.data[this.rows * i + k] * m.data[m.rows * k + j];
+                    p.data[i + this.columns * j] += this.data[i + this.columns * k] * m.data[k + m.columns * j];
                 }
             }
         }
@@ -144,8 +136,8 @@ class Mat {
         r.data[ 0] = f / aspect;
         r.data[ 5] = f;
         r.data[10] = (far + near) * nf;
-        r.data[11] = 2 * far * near * nf;
-        r.data[14] = -1;
+        r.data[11] = -1;
+        r.data[14] = 2 * far * near * nf;
         return r;
     }
     static lookAt(eye, center, up) {
@@ -156,17 +148,17 @@ class Mat {
         s.normalize();
         const u = s.cross(f);
         l.data[ 0] =  s.x;
-        l.data[ 1] =  s.y;
-        l.data[ 2] =  s.z;
-        l.data[ 4] =  u.x;
+        l.data[ 4] =  s.y;
+        l.data[ 8] =  s.z;
+        l.data[ 1] =  u.x;
         l.data[ 5] =  u.y;
-        l.data[ 6] =  u.z;
-        l.data[ 8] = -f.x;  
-        l.data[ 9] = -f.y;
+        l.data[ 9] =  u.z;
+        l.data[ 2] = -f.x;  
+        l.data[ 6] = -f.y;
         l.data[10] = -f.z;
-        l.data[12] = -s.dot(eye);
-        l.data[13] = -u.dot(eye);
-        l.data[11] =  f.dot(eye);
+        l.data[ 3] = -s.dot(eye);
+        l.data[ 7] = -u.dot(eye);
+        l.data[14] =  f.dot(eye);
         l.data[15] =  1;
         return l;
     }
@@ -176,7 +168,7 @@ class Mat {
             p += '[';
             for (var j = 0; j < this.columns; j++) {
                 if (j != 0) p += ',';
-                p += this.data[i + j * this.columns];
+                p += this.data[i * this.rows + j];
             }
             p += ']\n'
         }
@@ -219,13 +211,12 @@ class ShaderProgram {
         game.gl.linkProgram(glProgram);
         if (!game.gl.getProgramParameter(glProgram, game.gl.LINK_STATUS)) {
             console.log('An error ocurred while linking the program with shader names: ' + this.vertexShader.name + ', ' + this.fragmentShader.name);
+            console.log('Shader pogram linking log for program with names: ' + this.vertexShader.name + ', ' + this.fragmentShader.name + ': ' + game.gl.getProgramInfoLog(glProgram));
+            gl.deleteProgram(glProgram);
             return null;
         } else {
             console.log('Successfully linked shader program with names: ' + this.vertexShader.name + ', ' + this.fragmentShader.name)
         }
-        const programLog = game.gl.getProgramInfoLog(glProgram);
-        if (programLog > 0)
-            { console.log('Shader pogram linking log for program with names: ' + this.vertexShader.name + ', ' + this.fragmentShader.name); }
         return glProgram;
     }
 }
@@ -265,18 +256,6 @@ class Game {
         this.initShaders();
         this.initScene();
         requestAnimationFrame(renderScene);
-        
-        // const modelMatrix = Mat.identity(4);
-        // const viewMatrix = Mat.lookAt(new Vec3(4, 3, -3), Vec3.empty(), Vec3.up());
-        // const projectionMatrix = Mat.perspective(fov, 16.0 / 9.0, closeZ, farZ);
-        // const modelViewProjectionMatrix = projectionMatrix.multiply(viewMatrix).multiply(modelMatrix);
-        // modelViewProjectionMatrix.print();
-
-        // const m1 = new Mat(2, 2);
-        // m1.data = [1, 3, 2, 4];
-        // const m2 = new Mat(2, 2);
-        // m2.data = [5, 7, 6, 8];
-        // m2.multiply(m1).print(); 
     }
     configGL() {
         this.gl.clearColor(0.0, 0.0, 0.2, 1.0);
