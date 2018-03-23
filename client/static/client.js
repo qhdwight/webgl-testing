@@ -1,14 +1,16 @@
 const vertexShaderSource = `
-    attribute vec3 a_VertexPosition;
+    attribute vec4 a_VertexPosition;
     uniform mat4 u_ModelViewProjectionMatrix;
     void main(void) {
-        gl_Position = u_ModelViewProjectionMatrix * vec4(a_VertexPosition, 1.0);
+        gl_Position = u_ModelViewProjectionMatrix * a_VertexPosition;
     }
 `;
 
 const fragmentShaderSource = `
+    precision mediump float;
+    uniform float u_Time;
     void main(void) {
-        gl_FragColor = vec4(0.2, 0.2, 0.2, 1.0);
+        gl_FragColor = vec4(0.0, 0.2, 1.0, 1.0);
     }
 `;
 
@@ -18,12 +20,12 @@ const shaders = {
 }
 
 const cubeIndices = [
-     0,  1,  2,      0,  2,  3,   // Front
-     4,  5,  6,      4,  6,  7,   // Back
-     8,  9, 10,      8, 10, 11,   // Top
-    12, 13, 14,     12, 14, 15,   // Bottom
-    16, 17, 18,     16, 18, 19,   // Right
-    20, 21, 22,     20, 22, 23,   // Left
+     0,  1,  2,    0,  2,  3,   // Front
+     4,  5,  6,    4,  6,  7,   // Back
+     8,  9, 10,    8, 10, 11,   // Top
+    12, 13, 14,   12, 14, 15,   // Bottom
+    16, 17, 18,   16, 18, 19,   // Right
+    20, 21, 22,   20, 22, 23,   // Left
 ];
 
 const cubeVertices = [
@@ -148,16 +150,16 @@ class Mat {
         s.normalize();
         const u = s.cross(f);
         l.data[ 0] =  s.x;
-        l.data[ 4] =  s.y;
-        l.data[ 8] =  s.z;
         l.data[ 1] =  u.x;
-        l.data[ 5] =  u.y;
-        l.data[ 9] =  u.z;
         l.data[ 2] = -f.x;  
-        l.data[ 6] = -f.y;
-        l.data[10] = -f.z;
         l.data[ 3] = -s.dot(eye);
+        l.data[ 4] =  s.y;
+        l.data[ 5] =  u.y;
+        l.data[ 6] = -f.y;
         l.data[ 7] = -u.dot(eye);
+        l.data[ 8] =  s.z;
+        l.data[ 9] =  u.z;
+        l.data[10] = -f.z;
         l.data[14] =  f.dot(eye);
         l.data[15] =  1;
         return l;
@@ -227,6 +229,8 @@ function renderScene(now) {
     now *= 0.001;
     const deltaTime = now - then;
     then = now;
+    game.fpsText.innerHTML = 'FPS: ' + (1 / deltaTime).toFixed(0);
+    game.time += deltaTime;
     game.gl.viewport(0, 0, game.gameCanvas.width, game.gameCanvas.height);
     game.gl.clear(game.gl.COLOR_BUFFER_BIT | game.gl.DEPTH_BUFFER_BIT);
     const aspect = game.gameCanvas.width / game.gameCanvas.height;
@@ -235,7 +239,9 @@ function renderScene(now) {
     const projectionMatrix = Mat.perspective(fov, aspect, closeZ, farZ);
     const modelViewProjectionMatrix = projectionMatrix.multiply(viewMatrix).multiply(modelMatrix);
     game.gl.useProgram(game.program.glProgram);
+    const timePos = game.gl.getUniformLocation(game.program.glProgram, 'u_Time');
     const modelViewProjectionMatrixPos = game.gl.getUniformLocation(game.program.glProgram, 'u_ModelViewProjectionMatrix');
+    game.gl.uniform1f(timePos, game.time);
     game.gl.uniformMatrix4fv(modelViewProjectionMatrixPos, false, modelViewProjectionMatrix.data);
     game.scene.render();
     requestAnimationFrame(renderScene);
@@ -244,7 +250,9 @@ function renderScene(now) {
 class Game {
     constructor() {
         game = this;
+        this.time = 0;
         this.gameCanvas = document.getElementById('gameCanvas');
+        this.fpsText = document.getElementById('fps');
         window.addEventListener('resize', this.onResize)
         this.onResize();
         this.gl = this.gameCanvas.getContext('webgl');
