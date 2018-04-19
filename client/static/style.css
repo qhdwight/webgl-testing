@@ -13,6 +13,11 @@ h1, h2, h3, h4, h5, h6, p, a {
     font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
+div.fps-container {
+    background-color: black;
+    padding: 10px;
+}
+
 p#fps {
     margin: 0px;
     color: white;
